@@ -3,7 +3,7 @@ import java.io.File
 import java.util.Scanner
 import java.util.stream.IntStream.range
 
-val CURRENT_LEVEL = "level1"
+val CURRENT_LEVEL = "level2"
 
 fun compute(inputFile: File, outputFile: File) {
 
