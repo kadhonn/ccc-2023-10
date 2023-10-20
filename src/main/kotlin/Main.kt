@@ -1,7 +1,5 @@
-import Utils.Companion.fileForExample
 import java.io.File
-import java.util.Scanner
-import java.util.stream.IntStream.range
+import java.util.*
 
 val CURRENT_LEVEL = "level2"
 
@@ -12,13 +10,13 @@ fun compute(inputFile: File, outputFile: File) {
     val mapSize = scanner.nextInt()
     scanner.nextLine();
 
-    val map = mutableMapOf<Vector2D,Char>()
-    for(i in 0 until mapSize) {
+    val map = mutableMapOf<Vector2D, Char>()
+    for (i in 0 until mapSize) {
         val currentLine = scanner.nextLine()
         check(currentLine.length == mapSize)
 
-        for(j in 0 until mapSize) {
-            val currentPos = Vector2D(j,i)
+        for (j in 0 until mapSize) {
+            val currentPos = Vector2D(j, i)
             map[currentPos] = currentLine[j]
         }
     }
@@ -27,13 +25,56 @@ fun compute(inputFile: File, outputFile: File) {
     scanner.nextLine()
     var result = ""
 
-    for(i in 0  until coordinateCount) {
-        val currentCoordinate = Vector2D.fromString(scanner.nextLine())
-        val tileType = map.getValue(currentCoordinate)
-        result = result + "\n" + tileType;
+    for (i in 0 until coordinateCount) {
+        val coordinatePair = scanner.nextLine()
+        val coords = coordinatePair.split(" ")
+        check(coords.size == 2)
+        val currentCoordinate1 = Vector2D.fromString(coords[0])
+        val currentCoordinate2 = Vector2D.fromString(coords[1])
+        val tileType1 = map.getValue(currentCoordinate1)
+        val tileType2 = map.getValue(currentCoordinate2)
+
+        check(tileType1 == 'L')
+        check(tileType2 == 'L')
+        val currentResult = if (checkSameIsland(map, currentCoordinate1, currentCoordinate2)) {
+            "SAME"
+        } else {
+            "DIFFERENT"
+        }
+
+        result = result + "\n" + currentResult
     }
     val finalResult = result.trim().replace("\n", "\r\n") + "\r\n"
     outputFile.writeText(finalResult)
+}
+
+fun checkSameIsland(map: MutableMap<Vector2D, Char>, start: Vector2D, end: Vector2D): Boolean {
+    val alreadyChecked = mutableSetOf<Vector2D>()
+
+    val toCheck = mutableSetOf(start)
+    while (toCheck.isNotEmpty()) {
+        val current = toCheck.first()
+        if (current == end) {
+            return true
+        }
+
+        toCheck.remove(current)
+        if (alreadyChecked.contains(current)) {
+            continue
+        }
+        alreadyChecked.add(current)
+
+        val type = map[current]
+        if (type == null || type == 'W') {
+            continue
+        }
+
+        Vector2D.allDirections.forEach {
+            toCheck.add(current.plus(it))
+        }
+    }
+
+    return false
 }
 
 
@@ -61,9 +102,9 @@ data class Vector2D(val x: Int, val y: Int) {
         val RIGHT = Vector2D(1, 0)
         val DOWN = Vector2D(0, 1)
 
-        val allDirections = setOf(ZERO, LEFT, UP, RIGHT, DOWN)
+        val allDirections = setOf(LEFT, UP, RIGHT, DOWN)
 
-        fun fromString(str : String) : Vector2D {
+        fun fromString(str: String): Vector2D {
             val parts = str.split(",").map { it.toInt() }
             check(parts.size == 2)
             return Vector2D(parts[0], parts[1])
