@@ -1,9 +1,11 @@
 import java.io.File
 import java.util.*
+import kotlin.collections.AbstractSet
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-val CURRENT_LEVEL = "level3"
+val CURRENT_LEVEL = "level4"
 
 fun compute(inputFile: File, outputFile: File) {
 
@@ -31,26 +33,14 @@ fun compute(inputFile: File, outputFile: File) {
         val coordinatePair = scanner.nextLine()
         val coords = coordinatePair.split(" ")
         val currentRoute = coords.map { Vector2D.fromString(it) }
-        check(currentRoute.isNotEmpty())
+        check(currentRoute.size == 2)
 
-        val routeHasDistinctCoordinates = currentRoute.toSet().size == currentRoute.size
+        val route = shortestPath(currentRoute[0], currentRoute[1], map)
+        check(route.isNotEmpty())
 
-        val interRoutePoints = mutableListOf<Pair<Pair<Int,Int>,Pair<Int,Int>>>()
 
-        currentRoute.windowed(2,1,false).map {
-            val a = it[0]
-            val b = it[1]
-            val intersection = Pair(Pair(min(a.x, b.x), max(a.x,b.x)),Pair(min(a.y, b.y), max(a.y,b.y)))
-            interRoutePoints.add(intersection)
-        }
-
-        val routeHasNoIntersection = interRoutePoints.toSet().size == interRoutePoints.size
-
-        val currentResult = if (routeHasNoIntersection && routeHasDistinctCoordinates) {
-            "VALID"
-        } else {
-            "INVALID"
-        }
+        val currentResult =
+            route.joinToString(" ")
 
         result = result + "\n" + currentResult
     }
@@ -88,7 +78,7 @@ fun checkSameIsland(map: MutableMap<Vector2D, Char>, start: Vector2D, end: Vecto
 }
 
 
-data class Vector2D(val x: Int, val y: Int){
+data class Vector2D(val x: Int, val y: Int) {
     operator fun plus(b: Vector2D): Vector2D {
         return Vector2D(x + b.x, y + b.y)
     }
@@ -100,17 +90,23 @@ data class Vector2D(val x: Int, val y: Int){
     operator fun minus(b: Vector2D): Vector2D {
         return Vector2D(x - b.x, y - b.y)
     }
-    fun rotateClockwise() : Vector2D
-    {
+
+    fun rotateClockwise(): Vector2D {
         return Vector2D(y, -x)
     }
-    fun rotateCounterClockwise() : Vector2D
-    {
+
+    fun rotateCounterClockwise(): Vector2D {
         return Vector2D(-y, x)
     }
 
-    fun manhattan(): Int {
-        return Math.abs(x) + Math.abs(y)
+    fun shortestPath(to: Vector2D): Int {
+        val xDist = abs(to.x - x)
+        val yDist = abs(to.y - y)
+        return max(xDist, yDist)
+    }
+
+    override fun toString(): String {
+        return "$x,$y"
     }
 
     companion object {
@@ -119,8 +115,15 @@ data class Vector2D(val x: Int, val y: Int){
         val UP = Vector2D(0, -1)
         val RIGHT = Vector2D(1, 0)
         val DOWN = Vector2D(0, 1)
+        val UP_LEFT = UP + LEFT
+        val UP_RIGHT = UP + RIGHT
+        val DOWN_LEFT = DOWN + LEFT
+        val DOWN_RIGHT = DOWN + RIGHT
 
-        val allDirections = setOf(LEFT, UP, RIGHT, DOWN)
+        val allDirections = setOf(
+            LEFT, UP, RIGHT, DOWN,
+            UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT,
+        )
 
         fun fromString(str: String): Vector2D {
             val parts = str.split(",").map { it.toInt() }
@@ -128,4 +131,6 @@ data class Vector2D(val x: Int, val y: Int){
             return Vector2D(parts[0], parts[1])
         }
     }
+
+
 }
