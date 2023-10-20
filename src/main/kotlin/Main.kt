@@ -1,7 +1,7 @@
 import java.io.File
 import java.util.*
 
-val CURRENT_LEVEL = "level2"
+val CURRENT_LEVEL = "level3"
 
 fun compute(inputFile: File, outputFile: File) {
 
