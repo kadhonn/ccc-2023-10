@@ -36,7 +36,7 @@ fun compute(inputFile: File, outputFile: File) {
         val currentLandStart = currentRoute[0]
 
         val surroundingWater = getSurroundingWater(map, currentLandStart)
-        val route = getSortedRoute(surroundingWater)
+        val route = getSortedRoute(surroundingWater, mapSize)
 
         //val route = shortestPath(currentRoute[0], currentRoute[1], map)
         check(route.isNotEmpty())
@@ -50,38 +50,34 @@ fun compute(inputFile: File, outputFile: File) {
     outputFile.writeText(finalResult)
 }
 
-fun getSortedRoute(tiles : Set<Vector2D>): List<Vector2D> {
+fun getSortedRoute(tiles: Set<Vector2D>, mapSize: Int): List<Vector2D> {
     val moves = mutableListOf<Vector2D>()
     val toPickFrom = tiles.toMutableSet()
 
 
-    var current = toPickFrom.first()
-    toPickFrom.remove(current)
-    moves.add(current)
+    val start = toPickFrom.first()
+    toPickFrom.remove(start)
+    moves.add(start)
 
-    val possibleNext = Vector2D.allDirections.map { current + it }
+    val possibleNext = Vector2D.allDirections.map { start + it }
     val target = possibleNext.first { toPickFrom.contains(it) }
 
-    val currentRoute = shortestIlandSurroundingPath(current, target, toPickFrom)
 
-    val routeHasDistinctCoordinates = currentRoute.toSet().size == currentRoute.size
+    val tilesMaxX = tiles.map { it.x }.max()
+    val tilesMinX = tiles.map { it.x }.min()
+    val tilesMaxY = tiles.map { it.y }.max()
+    val tilesMinY = tiles.map { it.y }.min()
+    val xDiff = tilesMaxX - tilesMinX
+    val yDiff = tilesMaxY - tilesMinY
+    val minRouteLength = ((xDiff - 1) * 2 + (yDiff - 1) * 2) / 2
 
-    val interRoutePoints = mutableListOf<Pair<Pair<Int,Int>,Pair<Int,Int>>>()
+    val currentRoute = shortestIlandSurroundingPath(minRouteLength, start, target, toPickFrom)
+    check(currentRoute != null)
 
-    currentRoute.windowed(2,1,false).map {
-        val a = it[0]
-        val b = it[1]
-        val intersection = Pair(Pair(min(a.x, b.x), max(a.x,b.x)),Pair(min(a.y, b.y), max(a.y,b.y)))
-        interRoutePoints.add(intersection)
-    }
+    check(checkRoute(currentRoute))
+    check(currentRoute.size <= mapSize * 2)
 
-    val routeHasNoIntersection = interRoutePoints.toSet().size == interRoutePoints.size
-
-    val currentResult = if (routeHasNoIntersection && routeHasDistinctCoordinates) {
-        "VALID"
-    } else {
-        "INVALID"
-    }
+    check(currentRoute.size > minRouteLength)
 
     return currentRoute
 
@@ -94,6 +90,23 @@ fun getSortedRoute(tiles : Set<Vector2D>): List<Vector2D> {
 //        current = firstPossible
 //    }
 //    return moves
+}
+
+fun checkRoute(currentRoute: List<Vector2D>): Boolean {
+    val routeHasDistinctCoordinates = currentRoute.toSet().size == currentRoute.size
+
+    val interRoutePoints = mutableListOf<Pair<Pair<Int, Int>, Pair<Int, Int>>>()
+
+    currentRoute.windowed(2, 1, false).map {
+        val a = it[0]
+        val b = it[1]
+        val intersection = Pair(Pair(min(a.x, b.x), max(a.x, b.x)), Pair(min(a.y, b.y), max(a.y, b.y)))
+        interRoutePoints.add(intersection)
+    }
+
+    val routeHasNoIntersection = interRoutePoints.toSet().size == interRoutePoints.size
+
+    return routeHasNoIntersection && routeHasDistinctCoordinates
 }
 
 fun getSurroundingWater(map: Map<Vector2D, Char>, start: Vector2D): MutableSet<Vector2D> {
@@ -109,18 +122,15 @@ fun getSurroundingWater(map: Map<Vector2D, Char>, start: Vector2D): MutableSet<V
             continue
         }
         val currentTerrain = map[current]
-        if(currentTerrain == null) {
-        }
-        else if(currentTerrain == 'L') {
+        if (currentTerrain == null) {
+        } else if (currentTerrain == 'L') {
             sameIlandTiles.add(current)
             Vector2D.landDirections.forEach {
                 toCheck.add(current.plus(it))
             }
-        }
-        else if(currentTerrain == 'W') {
+        } else if (currentTerrain == 'W') {
             surroundingWaterTiles.add(current)
-        }
-        else{
+        } else {
             throw RuntimeException("cant happen")
         }
     }
@@ -155,6 +165,7 @@ data class Vector2D(val x: Int, val y: Int) {
         val yDist = abs(to.y - y)
         return max(xDist, yDist)
     }
+
     fun noHeuristic(to: Vector2D): Int {
         return 0;
     }
@@ -175,8 +186,9 @@ data class Vector2D(val x: Int, val y: Int) {
         val DOWN_RIGHT = DOWN + RIGHT
 
         val landDirections = listOf(
-            LEFT, UP, RIGHT, DOWN)
-        val allDirections =  listOf(
+            LEFT, UP, RIGHT, DOWN
+        )
+        val allDirections = listOf(
             UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT,
         ) + landDirections
 
