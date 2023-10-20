@@ -5,7 +5,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-val CURRENT_LEVEL = "level4"
+val CURRENT_LEVEL = "level5"
 
 fun compute(inputFile: File, outputFile: File) {
 
