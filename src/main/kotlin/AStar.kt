@@ -3,20 +3,23 @@ fun shortestIlandSurroundingPath(
     current: Vector2D,
     target: Vector2D,
     surroundingWater: Set<Vector2D>,
+    allSolutions: MutableList<List<Vector2D>>,
     visited: MutableSet<Vector2D> = mutableSetOf(),
     currentPath: MutableList<Vector2D> = mutableListOf()
-): List<Vector2D>? {
+) {
     currentPath.add(current)
     if (!checkRoute(currentPath)) {
         currentPath.removeAt(currentPath.size - 1)
-        return null
+        return
     }
     if (current == target) {
         if (currentPath.size <= minRouteLength) {
             currentPath.removeAt(currentPath.size - 1)
-            return null
+            return
         }
-        return currentPath
+        allSolutions.add(currentPath.toList())
+        currentPath.removeAt(currentPath.size - 1)
+        return
     }
     visited.add(current)
     for (d in Vector2D.allDirections) {
@@ -27,15 +30,18 @@ fun shortestIlandSurroundingPath(
         }
         //Move possible
         if (!visited.contains(newPos)) {
-            val result =
-                shortestIlandSurroundingPath(minRouteLength, newPos, target, surroundingWater, visited, currentPath)
-            if (result != null) {
-                return result
-            }
+            shortestIlandSurroundingPath(
+                minRouteLength,
+                newPos,
+                target,
+                surroundingWater,
+                allSolutions,
+                visited,
+                currentPath
+            )
         }
     }
 
     visited.remove(current)
     currentPath.removeAt(currentPath.size - 1)
-    return null
 }

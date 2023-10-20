@@ -4,7 +4,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-val CURRENT_LEVEL = "level5"
+val CURRENT_LEVEL = "level6"
 
 fun compute(inputFile: File, outputFile: File) {
 
@@ -36,7 +36,7 @@ fun compute(inputFile: File, outputFile: File) {
         val currentLandStart = currentRoute[0]
 
         val surroundingWater = getSurroundingWater(map, currentLandStart)
-        val route = getSortedRoute(surroundingWater, mapSize)
+        val route = getSortedRoute(surroundingWater, mapSize, map)
 
         //val route = shortestPath(currentRoute[0], currentRoute[1], map)
         check(route.isNotEmpty())
@@ -50,34 +50,33 @@ fun compute(inputFile: File, outputFile: File) {
     outputFile.writeText(finalResult)
 }
 
-fun getSortedRoute(tiles: Set<Vector2D>, mapSize: Int): List<Vector2D> {
-    val moves = mutableListOf<Vector2D>()
-    val toPickFrom = tiles.toMutableSet()
+fun getSortedRoute(tiles: Set<Vector2D>, mapSize: Int, map: Map<Vector2D, Char>): List<Vector2D> {
 
+    val allSolutions = mutableListOf<List<Vector2D>>()
 
-    val start = toPickFrom.first()
-    toPickFrom.remove(start)
-    moves.add(start)
+    for (start in tiles) {
+        val toPickFrom = tiles.toMutableSet()
+        toPickFrom.remove(start)
 
-    val possibleNext = Vector2D.allDirections.map { start + it }
-    val target = possibleNext.first { toPickFrom.contains(it) }
+        val possibleNext = Vector2D.allDirections.map { start + it }
+        val target = possibleNext.first { toPickFrom.contains(it) }
 
+        val tilesMaxX = tiles.map { it.x }.max()
+        val tilesMinX = tiles.map { it.x }.min()
+        val tilesMaxY = tiles.map { it.y }.max()
+        val tilesMinY = tiles.map { it.y }.min()
+        val xDiff = tilesMaxX - tilesMinX
+        val yDiff = tilesMaxY - tilesMinY
+        val minRouteLength = ((xDiff - 1) * 2 + (yDiff - 1) * 2) / 2
 
-    val tilesMaxX = tiles.map { it.x }.max()
-    val tilesMinX = tiles.map { it.x }.min()
-    val tilesMaxY = tiles.map { it.y }.max()
-    val tilesMinY = tiles.map { it.y }.min()
-    val xDiff = tilesMaxX - tilesMinX
-    val yDiff = tilesMaxY - tilesMinY
-    val minRouteLength = ((xDiff - 1) * 2 + (yDiff - 1) * 2) / 2
+        shortestIlandSurroundingPath(minRouteLength, start, target, toPickFrom, allSolutions)
+    }
 
-    val currentRoute = shortestIlandSurroundingPath(minRouteLength, start, target, toPickFrom)
+    val currentRoute = allSolutions.minBy { it.size }
     check(currentRoute != null)
 
     check(checkRoute(currentRoute))
     check(currentRoute.size <= mapSize * 2)
-
-    check(currentRoute.size > minRouteLength)
 
     return currentRoute
 
