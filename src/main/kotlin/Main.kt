@@ -1,5 +1,7 @@
 import java.io.File
 import java.util.*
+import kotlin.math.max
+import kotlin.math.min
 
 val CURRENT_LEVEL = "level3"
 
@@ -28,18 +30,26 @@ fun compute(inputFile: File, outputFile: File) {
     for (i in 0 until coordinateCount) {
         val coordinatePair = scanner.nextLine()
         val coords = coordinatePair.split(" ")
-        check(coords.size == 2)
-        val currentCoordinate1 = Vector2D.fromString(coords[0])
-        val currentCoordinate2 = Vector2D.fromString(coords[1])
-        val tileType1 = map.getValue(currentCoordinate1)
-        val tileType2 = map.getValue(currentCoordinate2)
+        val currentRoute = coords.map { Vector2D.fromString(it) }
+        check(currentRoute.isNotEmpty())
 
-        check(tileType1 == 'L')
-        check(tileType2 == 'L')
-        val currentResult = if (checkSameIsland(map, currentCoordinate1, currentCoordinate2)) {
-            "SAME"
+        val routeHasDistinctCoordinates = currentRoute.toSet().size == currentRoute.size
+
+        val interRoutePoints = mutableListOf<Pair<Pair<Int,Int>,Pair<Int,Int>>>()
+
+        currentRoute.windowed(2,1,false).map {
+            val a = it[0]
+            val b = it[1]
+            val intersection = Pair(Pair(min(a.x, b.x), max(a.x,b.x)),Pair(min(a.y, b.y), max(a.y,b.y)))
+            interRoutePoints.add(intersection)
+        }
+
+        val routeHasNoIntersection = interRoutePoints.toSet().size == interRoutePoints.size
+
+        val currentResult = if (routeHasNoIntersection && routeHasDistinctCoordinates) {
+            "VALID"
         } else {
-            "DIFFERENT"
+            "INVALID"
         }
 
         result = result + "\n" + currentResult
@@ -78,7 +88,7 @@ fun checkSameIsland(map: MutableMap<Vector2D, Char>, start: Vector2D, end: Vecto
 }
 
 
-data class Vector2D(val x: Int, val y: Int) {
+data class Vector2D(val x: Int, val y: Int){
     operator fun plus(b: Vector2D): Vector2D {
         return Vector2D(x + b.x, y + b.y)
     }
@@ -89,6 +99,14 @@ data class Vector2D(val x: Int, val y: Int) {
 
     operator fun minus(b: Vector2D): Vector2D {
         return Vector2D(x - b.x, y - b.y)
+    }
+    fun rotateClockwise() : Vector2D
+    {
+        return Vector2D(y, -x)
+    }
+    fun rotateCounterClockwise() : Vector2D
+    {
+        return Vector2D(-y, x)
     }
 
     fun manhattan(): Int {
