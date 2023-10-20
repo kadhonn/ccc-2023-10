@@ -60,3 +60,35 @@ data class State(val pos: Vector2D, val distance: Int, val time: Int, val path: 
     }
     return current.path
 }
+ fun shortestIlandSurroundingPath(
+    start: Vector2D,
+    target: Vector2D,
+    surroundingWater : Set<Vector2D>,
+): List<Vector2D> {
+    val queue = PriorityQueue<State>()
+    val visited = mutableSetOf<State>()
+    val initialState = State(start, start.noHeuristic(target), 0, listOf(start))
+    queue.add(initialState)
+    visited.add(initialState)
+
+    var current = initialState
+    while (current.pos != target) {
+        val newTime = current.time + 1
+        for (d in Vector2D.allDirections) {
+            val newPos = current.pos + d
+            if (!surroundingWater.contains(newPos) || (newPos == target && current.path.last() == start && newTime < 3)) {
+                //Move not possible 1
+                continue
+            }
+            //Move possible
+            val newState = State(newPos, newPos.noHeuristic(target), newTime, current.path + newPos)
+            if (!visited.contains(newState)) {
+                visited.add(newState)
+                queue.add(newState)
+            }
+        }
+        current = queue.first()
+        queue.remove(current)
+    }
+    return current.path
+}

@@ -75,7 +75,7 @@ class Tests {
 
         @JvmStatic
         fun someInputFiles(): List<File> {
-            return filesForExamples(listOf("1", "2", "3"))
+            return filesForExamples(listOf("4"))
         }
 
         @JvmStatic

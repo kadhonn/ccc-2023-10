@@ -1,6 +1,5 @@
 import java.io.File
 import java.util.*
-import kotlin.collections.AbstractSet
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -33,11 +32,14 @@ fun compute(inputFile: File, outputFile: File) {
         val coordinatePair = scanner.nextLine()
         val coords = coordinatePair.split(" ")
         val currentRoute = coords.map { Vector2D.fromString(it) }
-        check(currentRoute.size == 2)
+        check(currentRoute.size == 1)
+        val currentLandStart = currentRoute[0]
 
-        val route = shortestPath(currentRoute[0], currentRoute[1], map)
+        val surroundingWater = getSurroundingWater(map, currentLandStart)
+        val route = getSortedRoute(surroundingWater)
+
+        //val route = shortestPath(currentRoute[0], currentRoute[1], map)
         check(route.isNotEmpty())
-
 
         val currentResult =
             route.joinToString(" ")
@@ -48,33 +50,82 @@ fun compute(inputFile: File, outputFile: File) {
     outputFile.writeText(finalResult)
 }
 
-fun checkSameIsland(map: MutableMap<Vector2D, Char>, start: Vector2D, end: Vector2D): Boolean {
-    val alreadyChecked = mutableSetOf<Vector2D>()
+fun getSortedRoute(tiles : Set<Vector2D>): List<Vector2D> {
+    val moves = mutableListOf<Vector2D>()
+    val toPickFrom = tiles.toMutableSet()
+
+
+    var current = toPickFrom.first()
+    toPickFrom.remove(current)
+    moves.add(current)
+
+    val possibleNext = Vector2D.allDirections.map { current + it }
+    val target = possibleNext.first { toPickFrom.contains(it) }
+
+    val currentRoute = shortestIlandSurroundingPath(current, target, toPickFrom)
+
+    val routeHasDistinctCoordinates = currentRoute.toSet().size == currentRoute.size
+
+    val interRoutePoints = mutableListOf<Pair<Pair<Int,Int>,Pair<Int,Int>>>()
+
+    currentRoute.windowed(2,1,false).map {
+        val a = it[0]
+        val b = it[1]
+        val intersection = Pair(Pair(min(a.x, b.x), max(a.x,b.x)),Pair(min(a.y, b.y), max(a.y,b.y)))
+        interRoutePoints.add(intersection)
+    }
+
+    val routeHasNoIntersection = interRoutePoints.toSet().size == interRoutePoints.size
+
+    val currentResult = if (routeHasNoIntersection && routeHasDistinctCoordinates) {
+        "VALID"
+    } else {
+        "INVALID"
+    }
+
+    return currentRoute
+
+//
+//    for(i in 1 until tiles.size) {
+//        val possibleNext = Vector2D.allDirections.map { current + it }
+//        val firstPossible = possibleNext.first { toPickFrom.contains(it) }
+//        toPickFrom.remove(firstPossible)
+//        moves.add(firstPossible)
+//        current = firstPossible
+//    }
+//    return moves
+}
+
+fun getSurroundingWater(map: Map<Vector2D, Char>, start: Vector2D): MutableSet<Vector2D> {
+    val sameIlandTiles = mutableSetOf<Vector2D>()
+    val surroundingWaterTiles = mutableSetOf<Vector2D>()
 
     val toCheck = mutableSetOf(start)
     while (toCheck.isNotEmpty()) {
         val current = toCheck.first()
-        if (current == end) {
-            return true
-        }
-
         toCheck.remove(current)
-        if (alreadyChecked.contains(current)) {
+
+        if (sameIlandTiles.contains(current)) {
             continue
         }
-        alreadyChecked.add(current)
-
-        val type = map[current]
-        if (type == null || type == 'W') {
-            continue
+        val currentTerrain = map[current]
+        if(currentTerrain == null) {
         }
-
-        Vector2D.allDirections.forEach {
-            toCheck.add(current.plus(it))
+        else if(currentTerrain == 'L') {
+            sameIlandTiles.add(current)
+            Vector2D.landDirections.forEach {
+                toCheck.add(current.plus(it))
+            }
+        }
+        else if(currentTerrain == 'W') {
+            surroundingWaterTiles.add(current)
+        }
+        else{
+            throw RuntimeException("cant happen")
         }
     }
 
-    return false
+    return surroundingWaterTiles
 }
 
 
@@ -104,6 +155,9 @@ data class Vector2D(val x: Int, val y: Int) {
         val yDist = abs(to.y - y)
         return max(xDist, yDist)
     }
+    fun noHeuristic(to: Vector2D): Int {
+        return 0;
+    }
 
     override fun toString(): String {
         return "$x,$y"
@@ -120,10 +174,11 @@ data class Vector2D(val x: Int, val y: Int) {
         val DOWN_LEFT = DOWN + LEFT
         val DOWN_RIGHT = DOWN + RIGHT
 
-        val allDirections = setOf(
-            LEFT, UP, RIGHT, DOWN,
+        val landDirections = listOf(
+            LEFT, UP, RIGHT, DOWN)
+        val allDirections =  listOf(
             UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT,
-        )
+        ) + landDirections
 
         fun fromString(str: String): Vector2D {
             val parts = str.split(",").map { it.toInt() }
